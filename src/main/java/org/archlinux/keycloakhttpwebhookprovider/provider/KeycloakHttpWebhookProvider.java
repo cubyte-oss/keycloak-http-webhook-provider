@@ -2,7 +2,6 @@ package org.archlinux.keycloakhttpwebhookprovider.provider;
 
 import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -12,7 +11,6 @@ import org.keycloak.events.Event;
 import org.keycloak.events.EventListenerProvider;
 import org.keycloak.events.admin.AdminEvent;
 
-import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -22,28 +20,25 @@ import okhttp3.Response;
 
 public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
+    private static final String WEBHOOK_ENV = "KEYCLOAK_WEBHOOK_URL";
     private static final Logger log = Logger.getLogger(KeycloakHttpWebhookProvider.class);
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     private final OkHttpClient httpClient = new OkHttpClient();
-    private String serverUrl;
-    private String username;
-    private String password;
+    private final String serverUrl = System.getenv(WEBHOOK_ENV);
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    public KeycloakHttpWebhookProvider(String serverUrl, String username, String password) {
-        this.serverUrl = serverUrl;
-        this.username = username;
-        this.password = password;
-    }
 
-    private void sendJson(String jsonString) {
-        Request.Builder request_builder = new Request.Builder().url(this.serverUrl).addHeader("User-Agent", "Keycloak Webhook");
-
-        if (this.username != null && this.password != null) {
-            String credential = Credentials.basic(this.username, this.password);
-            request_builder.addHeader("Authorization", credential);
+    private void sendJson(String jsonString, String realmId) {
+        if (serverUrl == null) {
+            log.error(WEBHOOK_ENV + " environment variable not configured, no events will be forwarded!");
+            return;
         }
-
-        Request request = request_builder.post(RequestBody.create(jsonString, JSON)).build();
+        Request request = new Request.Builder()
+                .url(this.serverUrl)
+                .addHeader("User-Agent", "Keycloak Webhook")
+                .addHeader("X-Keycloak-Realm", realmId)
+                .post(RequestBody.create(jsonString, JSON))
+                .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) {
@@ -68,21 +63,17 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
     public void close() {}
 
     private String toString(Event event) {
-        ObjectMapper mapper = new ObjectMapper();
         String jsonString = "";
         try {
             jsonString = mapper.writeValueAsString(event);
-            sendJson(jsonString);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            sendJson(jsonString, event.getRealmId());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to send event to webhook!", e);
         }
         return jsonString;
     }
 
     private String toString(AdminEvent adminEvent) {
-        ObjectMapper mapper = new ObjectMapper();
         String jsonString = "";
         try {
             // An AdminEvent has weird JSON representation field which we need to special case.
@@ -91,11 +82,9 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
             node.replace("representation", representationNode);
             jsonString = mapper.writeValueAsString(node);
 
-            sendJson(jsonString);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            sendJson(jsonString, adminEvent.getRealmId());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to send admin event to webhook!", e);
         }
         return jsonString;
     }
