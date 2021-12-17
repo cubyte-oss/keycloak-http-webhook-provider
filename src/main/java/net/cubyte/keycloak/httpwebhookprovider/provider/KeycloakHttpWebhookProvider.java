@@ -1,5 +1,15 @@
 package net.cubyte.keycloak.httpwebhookprovider.provider;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.jboss.logging.Logger;
+import org.keycloak.events.Event;
+import org.keycloak.events.EventListenerProvider;
+import org.keycloak.events.admin.AdminEvent;
+import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -11,24 +21,12 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import org.jboss.logging.Logger;
-import org.jboss.resteasy.util.HttpHeaderNames;
-import org.keycloak.events.Event;
-import org.keycloak.events.EventListenerProvider;
-import org.keycloak.events.admin.AdminEvent;
-
-import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.RealmModel;
-
-import javax.ws.rs.core.MediaType;
-
 import static java.net.http.HttpClient.Redirect.ALWAYS;
 import static java.net.http.HttpResponse.BodyHandlers.discarding;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static org.jboss.resteasy.util.HttpHeaderNames.CONTENT_TYPE;
+import static org.jboss.resteasy.util.HttpHeaderNames.USER_AGENT;
 
 
 public class KeycloakHttpWebhookProvider implements EventListenerProvider {
@@ -77,8 +75,8 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(webhookTarget)
-                .header(HttpHeaderNames.CONTENT_TYPE, MediaType.APPLICATION_JSON)
-                .header(HttpHeaderNames.USER_AGENT, "Keycloak Webhook for " + realmName + " (" + realmId + ")")
+                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .header(USER_AGENT, "Keycloak Webhook for " + realmName + " (" + realmId + ")")
                 .header(REALM_ID_HEADER, realmId)
                 .header(REALM_ID_HEADER, realmId)
                 .header(REALM_NAME_HEADER, realmName)
