@@ -137,11 +137,13 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
         @Override
         public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
-            if (this.subscriber.compareAndSet(null, subscriber)) {
-                subscriber.onSubscribe(new LazyPayloadSubscription(subscriber));
-            } else {
+            if (!this.subscriber.compareAndSet(null, subscriber)) {
+                log.warn("The lazy payload publisher can only be subscribed once!");
                 subscriber.onError(new IllegalStateException("publisher already subscribed!"));
+                return;
             }
+
+            subscriber.onSubscribe(new LazyPayloadSubscription(subscriber));
         }
 
         private class LazyPayloadSubscription implements Flow.Subscription {
@@ -155,22 +157,27 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
             @Override
             public void request(long n) {
-                if (done.compareAndSet(false, true)) {
-                    if (n < 0) {
-                        subscriber.onError(new IllegalArgumentException("demand may not be negative!"));
-                    } else {
-                        try {
-                            byte[] payload = supplier.get();
-                            if (log.isDebugEnabled()) {
-                                log.debug("Event payload: " + new String(payload, UTF_8));
-                            }
+                if (!done.compareAndSet(false, true)) {
+                    log.warn("Subscription is already completed!");
+                    return;
+                }
 
-                            subscriber.onNext(ByteBuffer.wrap(payload));
-                            subscriber.onComplete();
-                        } catch (IOException e) {
-                            subscriber.onError(e);
-                        }
+                if (n < 0) {
+                    log.warn("Request for " + n + " items cannot be fulfilled!");
+                    subscriber.onError(new IllegalArgumentException("demand may not be negative!"));
+                    return;
+                }
+
+                try {
+                    byte[] payload = supplier.get();
+                    if (log.isDebugEnabled()) {
+                        log.debug("Event payload: " + new String(payload, UTF_8));
                     }
+
+                    subscriber.onNext(ByteBuffer.wrap(payload));
+                    subscriber.onComplete();
+                } catch (IOException e) {
+                    subscriber.onError(e);
                 }
             }
 
