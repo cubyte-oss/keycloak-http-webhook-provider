@@ -11,8 +11,7 @@ public class KeycloakHttpWebhookProviderFactory implements EventListenerProvider
 
     @Override
     public EventListenerProvider create(KeycloakSession keycloakSession) {
-
-        return new KeycloakHttpWebhookProvider();
+        return new KeycloakHttpWebhookProvider(keycloakSession);
     }
 
     @Override
