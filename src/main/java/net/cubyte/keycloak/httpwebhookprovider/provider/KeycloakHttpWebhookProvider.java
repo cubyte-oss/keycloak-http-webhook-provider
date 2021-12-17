@@ -41,7 +41,8 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
     private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(1);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
-    private static final Logger log = Logger.getLogger(KeycloakHttpWebhookProvider.class);
+    private static final Logger logger = Logger.getLogger(KeycloakHttpWebhookProvider.class);
+
     private final HttpClient httpClient;
     private final URI webhookTarget;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -58,21 +59,21 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
         try {
             this.webhookTarget = new URI(webhookEnvValue);
         } catch (URISyntaxException e) {
-            log.error("Failed to parse webhook target as URI: " + webhookEnvValue, e);
+            logger.error("Failed to parse webhook target as URI: " + webhookEnvValue, e);
             throw new RuntimeException(e);
         }
     }
 
 
     private void forwardWebhook(String realmId, PayloadSupplier jsonSupplier) {
-        log.debug("Event occurred on realm " + realmId);
+        logger.debug("Event occurred on realm " + realmId);
         if (webhookTarget == null) {
-            log.error(WEBHOOK_ENV + " environment variable not configured, no events will be forwarded!");
+            logger.error(WEBHOOK_ENV + " environment variable not configured, no events will be forwarded!");
             return;
         }
         RealmModel realm = keycloakSession.realms().getRealm(realmId);
         if (realm == null) {
-            log.error("Failed to lookup realm " + realmId + "!");
+            logger.error("Failed to lookup realm " + realmId + "!");
             return;
         }
 
@@ -90,16 +91,16 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
         httpClient.sendAsync(request, discarding()).whenComplete((response, ex) -> {
             if (ex != null) {
-                log.error("The HTTP request to the webhook target failed!", ex);
+                logger.error("The HTTP request to the webhook target failed!", ex);
                 return;
             }
 
             int statusCode = response.statusCode();
             if (statusCode < 200 || statusCode >= 300) {
-                log.error("The webhook returned an unsuccessful status code: " + statusCode);
+                logger.error("The webhook returned an unsuccessful status code: " + statusCode);
             }
 
-            log.info("Event successfully delivered!");
+            logger.info("Event successfully delivered!");
         });
     }
 
@@ -144,7 +145,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
         @Override
         public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
             if (!this.subscriber.compareAndSet(null, subscriber)) {
-                log.warn("The lazy payload publisher can only be subscribed once!");
+                logger.warn("The lazy payload publisher can only be subscribed once!");
                 subscriber.onError(new IllegalStateException("publisher already subscribed!"));
                 return;
             }
@@ -164,22 +165,22 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
             @Override
             public void request(long n) {
                 if (!done.compareAndSet(false, true)) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Subscription is already completed! (requested another " + n + " items)", new Exception());
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Subscription is already completed! (requested another " + n + " items)", new Exception());
                     }
                     return;
                 }
 
                 if (n < 0) {
-                    log.warn("Request for " + n + " items cannot be fulfilled!");
+                    logger.warn("Request for " + n + " items cannot be fulfilled!");
                     subscriber.onError(new IllegalArgumentException("demand may not be negative!"));
                     return;
                 }
 
                 try {
                     byte[] payload = supplier.get();
-                    if (log.isDebugEnabled()) {
-                        log.debug("Event payload: " + new String(payload, UTF_8));
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Event payload: " + new String(payload, UTF_8));
                     }
 
                     subscriber.onNext(ByteBuffer.wrap(payload));
