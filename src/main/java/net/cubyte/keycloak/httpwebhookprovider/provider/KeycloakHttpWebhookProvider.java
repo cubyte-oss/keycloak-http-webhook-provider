@@ -1,4 +1,4 @@
-package org.archlinux.keycloakhttpwebhookprovider.provider;
+package net.cubyte.keycloak.httpwebhookprovider.provider;
 
 import java.io.IOException;
 import java.net.URI;

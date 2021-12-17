@@ -1,4 +1,4 @@
-package org.archlinux.keycloakhttpwebhookprovider.provider;
+package net.cubyte.keycloak.httpwebhookprovider.provider;
 
 import org.keycloak.Config;
 import org.keycloak.events.EventListenerProvider;
