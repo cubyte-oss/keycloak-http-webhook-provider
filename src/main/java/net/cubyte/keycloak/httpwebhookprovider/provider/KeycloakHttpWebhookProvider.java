@@ -78,7 +78,6 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
                 .header(CONTENT_TYPE, APPLICATION_JSON)
                 .header(USER_AGENT, "Keycloak Webhook for " + realmName + " (" + realmId + ")")
                 .header(REALM_ID_HEADER, realmId)
-                .header(REALM_ID_HEADER, realmId)
                 .header(REALM_NAME_HEADER, realmName)
                 .POST(new LazyPayloadPublisher(jsonSupplier))
                 .build();
