@@ -164,10 +164,9 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
                             if (log.isDebugEnabled()) {
                                 log.debug("Event payload: " + new String(payload, UTF_8));
                             }
-                            if (!done.get()) {
-                                subscriber.onNext(ByteBuffer.wrap(payload));
-                                subscriber.onComplete();
-                            }
+
+                            subscriber.onNext(ByteBuffer.wrap(payload));
+                            subscriber.onComplete();
                         } catch (IOException e) {
                             subscriber.onError(e);
                         }
