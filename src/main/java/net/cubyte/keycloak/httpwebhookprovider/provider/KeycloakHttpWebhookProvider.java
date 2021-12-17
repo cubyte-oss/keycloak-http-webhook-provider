@@ -38,6 +38,9 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
     private static final String REALM_ID_HEADER = "X-Keycloak-RealmId";
     private static final String REALM_NAME_HEADER = "X-Keycloak-Realm";
 
+    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(1);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
+
     private static final Logger log = Logger.getLogger(KeycloakHttpWebhookProvider.class);
     private final HttpClient httpClient;
     private final URI webhookTarget;
@@ -47,7 +50,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
     public KeycloakHttpWebhookProvider(KeycloakSession keycloakSession) {
         this.keycloakSession = keycloakSession;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(2))
+                .connectTimeout(CONNECTION_TIMEOUT)
                 .version(HTTP_2)
                 .followRedirects(ALWAYS)
                 .build();
@@ -81,6 +84,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
                 .header(USER_AGENT, "Keycloak Webhook for " + realmName + " (" + realmId + ")")
                 .header(REALM_ID_HEADER, realmId)
                 .header(REALM_NAME_HEADER, realmName)
+                .timeout(REQUEST_TIMEOUT)
                 .POST(new LazyPayloadPublisher(jsonSupplier))
                 .build();
 
