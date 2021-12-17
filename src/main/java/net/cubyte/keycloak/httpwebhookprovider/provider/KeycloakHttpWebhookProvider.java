@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.net.http.HttpClient.Redirect.ALWAYS;
+import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.net.http.HttpResponse.BodyHandlers.discarding;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -47,6 +48,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
         this.keycloakSession = keycloakSession;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(2))
+                .version(HTTP_2)
                 .followRedirects(ALWAYS)
                 .build();
         final String webhookEnvValue = System.getenv(WEBHOOK_ENV);
@@ -158,7 +160,9 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
             @Override
             public void request(long n) {
                 if (!done.compareAndSet(false, true)) {
-                    log.warn("Subscription is already completed!");
+                    if (log.isDebugEnabled()) {
+                        log.debug("Subscription is already completed! (requested another " + n + " items)", new Exception());
+                    }
                     return;
                 }
 
