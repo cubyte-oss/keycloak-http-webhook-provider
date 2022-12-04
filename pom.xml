@@ -11,7 +11,7 @@
     <description>A simple keycloak plugin that forwards events to an HTTP endpoint.</description>
 
     <properties>
-        <keycloak.version>19.0.3</keycloak.version>
+        <keycloak.version>20.0.1</keycloak.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
