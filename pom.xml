@@ -92,7 +92,7 @@
                     <createDependencyReducedPom>false</createDependencyReducedPom>
                     <filters>
                         <filter>
-                            <artifact>*:*</artifact>
+                            <artifact>com.fasterxml.jackson.core:*</artifact>
                             <excludes>
                                 <exclude>module-info.class</exclude>
                                 <exclude>META-INF/**</exclude>
