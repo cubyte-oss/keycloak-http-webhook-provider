@@ -15,4 +15,4 @@ docker run --rm --name keycloak \
     -p '8787:8787' \
     -p '9990:9990' \
     "$@" \
-    quay.io/keycloak/keycloak:17.0.1-legacy
+    quay.io/keycloak/keycloak:18.0.2-legacy
