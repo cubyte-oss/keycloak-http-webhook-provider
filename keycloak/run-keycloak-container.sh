@@ -2,10 +2,10 @@
 
 set -euo pipefail
 
-host_ip="$(ip addr show docker0 | grep -Po 'inet \K[\d.]+')"
+host_ip="$(ip route get 1.1.1.1 | grep src | cut -d' ' -f7)"
 
 id="$(
-  docker run -d --rm --name keycloak \
+  podman run -d --rm --name keycloak \
       -v "$PWD/target/keycloak_http_webhook_provider.jar:/opt/keycloak/providers/http_webhook_provider.jar" \
       -e DEBUG_PORT='*:8787' \
       -e KEYCLOAK_ADMIN="admin" \
@@ -14,7 +14,7 @@ id="$(
       -p '8080:8080' \
       -p '8787:8787' \
       "$@" \
-      quay.io/keycloak/keycloak:20.0.2-0 \
+      quay.io/keycloak/keycloak:22.0.1 \
       start-dev \
       --debug \
       --db dev-file \
@@ -28,7 +28,7 @@ id="$(
 add_http_listener() {
     for i in {1..10}; do
         curl --silent --head --fail http://localhost:8080/auth && \
-        docker exec "$id" /opt/keycloak/bin/kcadm.sh update events/config -s eventsListeners+=http_webhook \
+        podman exec "$id" /opt/keycloak/bin/kcadm.sh update events/config -s eventsListeners+=http_webhook \
             --no-config --server http://localhost:8080/auth --user admin --password admin --realm master && \
             exit 0
         sleep 2
@@ -37,10 +37,10 @@ add_http_listener() {
 }
 
 finish() {
-  docker kill "$id"
+  podman kill "$id"
 }
 trap finish EXIT
 
 add_http_listener &
 
-docker container logs -f "$id"
+podman container logs -f "$id"
