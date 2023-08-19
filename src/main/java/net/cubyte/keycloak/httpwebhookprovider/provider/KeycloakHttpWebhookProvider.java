@@ -56,6 +56,9 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
                 .followRedirects(ALWAYS)
                 .build();
         final String webhookEnvValue = System.getenv(WEBHOOK_ENV);
+        if (webhookEnvValue == null) {
+            throw new IllegalArgumentException("No webhook URL has been given! Set the " + WEBHOOK_ENV + " env var!");
+        }
         try {
             this.webhookTarget = new URI(webhookEnvValue);
         } catch (URISyntaxException e) {
