@@ -25,7 +25,6 @@ import static java.net.http.HttpClient.Redirect.ALWAYS;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.net.http.HttpResponse.BodyHandlers.discarding;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.jboss.resteasy.util.HttpHeaderNames.CONTENT_TYPE;
 import static org.jboss.resteasy.util.HttpHeaderNames.USER_AGENT;
 
@@ -84,7 +83,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(webhookTarget)
-                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .header(CONTENT_TYPE, "application/json")
                 .header(USER_AGENT, "Keycloak Webhook for " + realmName + " (" + realmId + ")")
                 .header(REALM_ID_HEADER, realmId)
                 .header(REALM_NAME_HEADER, realmName)
