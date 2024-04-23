@@ -21,12 +21,12 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static jakarta.ws.rs.core.HttpHeaders.CONTENT_TYPE;
+import static jakarta.ws.rs.core.HttpHeaders.USER_AGENT;
 import static java.net.http.HttpClient.Redirect.ALWAYS;
 import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.net.http.HttpResponse.BodyHandlers.discarding;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.jboss.resteasy.util.HttpHeaderNames.CONTENT_TYPE;
-import static org.jboss.resteasy.util.HttpHeaderNames.USER_AGENT;
 
 
 public class KeycloakHttpWebhookProvider implements EventListenerProvider {
