@@ -116,8 +116,11 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
         forwardWebhook(event.getRealmId(), () -> {
             ObjectNode node = mapper.valueToTree(event);
             // An AdminEvent has weird JSON representation field which we need to special case.
-            JsonNode representationNode = mapper.readTree(event.getRepresentation());
-            node.replace(REPRESENTATION_FIELD, representationNode);
+            String representation = event.getRepresentation();
+            if (representation != null) {
+                JsonNode representationNode = mapper.readTree(representation);
+                node.replace(REPRESENTATION_FIELD, representationNode);
+            }
             return mapper.writeValueAsBytes(event);
         });
     }
