@@ -12,7 +12,6 @@ import org.keycloak.models.RealmModel;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.nio.ByteBuffer;
@@ -23,47 +22,32 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static jakarta.ws.rs.core.HttpHeaders.CONTENT_TYPE;
 import static jakarta.ws.rs.core.HttpHeaders.USER_AGENT;
-import static java.net.http.HttpClient.Redirect.ALWAYS;
-import static java.net.http.HttpClient.Version.HTTP_2;
 import static java.net.http.HttpResponse.BodyHandlers.discarding;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static net.cubyte.keycloak.httpwebhookprovider.provider.KeycloakHttpWebhookProviderFactory.WEBHOOK_ENV;
 
 
 public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
-    private static final String WEBHOOK_ENV = "KEYCLOAK_WEBHOOK_URL";
     private static final String REPRESENTATION_FIELD = "representation";
 
     private static final String REALM_ID_HEADER = "X-Keycloak-RealmId";
     private static final String REALM_NAME_HEADER = "X-Keycloak-Realm";
 
-    private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(1);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
 
     private static final Logger logger = Logger.getLogger(KeycloakHttpWebhookProvider.class);
 
     private final HttpClient httpClient;
     private final URI webhookTarget;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper;
     private final KeycloakSession keycloakSession;
 
-    public KeycloakHttpWebhookProvider(KeycloakSession keycloakSession) {
+    public KeycloakHttpWebhookProvider(KeycloakSession keycloakSession, HttpClient httpClient, ObjectMapper mapper, URI webhookTarget) {
         this.keycloakSession = keycloakSession;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(CONNECTION_TIMEOUT)
-                .version(HTTP_2)
-                .followRedirects(ALWAYS)
-                .build();
-        final String webhookEnvValue = System.getenv(WEBHOOK_ENV);
-        if (webhookEnvValue == null) {
-            throw new IllegalArgumentException("No webhook URL has been given! Set the " + WEBHOOK_ENV + " env var!");
-        }
-        try {
-            this.webhookTarget = new URI(webhookEnvValue);
-        } catch (URISyntaxException e) {
-            logger.error("Failed to parse webhook target as URI: " + webhookEnvValue, e);
-            throw new RuntimeException(e);
-        }
+        this.httpClient = httpClient;
+        this.mapper = mapper;
+        this.webhookTarget = webhookTarget;
     }
 
 
@@ -93,7 +77,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
         httpClient.sendAsync(request, discarding()).whenComplete((response, ex) -> {
             if (ex != null) {
-                logger.error("The HTTP request to the webhook target failed!", ex);
+                logger.error("The HTTP request to the webhook target (" +  webhookTarget + ") failed!", ex);
                 return;
             }
 
