@@ -23,25 +23,42 @@ public class KeycloakHttpWebhookProviderFactory implements EventListenerProvider
     static final String WEBHOOK_ENV = "KEYCLOAK_WEBHOOK_URL";
     private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(1);
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
+    private URI webhookTarget;
+    private HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(CONNECTION_TIMEOUT)
             .version(HTTP_2)
             .followRedirects(ALWAYS)
             .build();
-    private final ObjectMapper mapper = new ObjectMapper();
-    private final URI webhookTarget;
+    private ObjectMapper mapper;
 
-    public KeycloakHttpWebhookProviderFactory() {
+    @Override
+    public String getId() {
+        return "http_webhook";
+    }
+
+    @Override
+    public void init(Config.Scope config) {
+    }
+
+    @Override
+    public void postInit(KeycloakSessionFactory factory) {
         final String webhookEnvValue = System.getenv(WEBHOOK_ENV);
         if (webhookEnvValue == null) {
             throw new IllegalArgumentException("No webhook URL has been given! Set the " + WEBHOOK_ENV + " env var!");
         }
         try {
-            this.webhookTarget = new URI(webhookEnvValue);
+            webhookTarget = new URI(webhookEnvValue);
         } catch (URISyntaxException e) {
             logger.error("Failed to parse webhook target as URI: " + webhookEnvValue, e);
             throw new RuntimeException(e);
         }
+
+        httpClient = HttpClient.newBuilder()
+                .connectTimeout(CONNECTION_TIMEOUT)
+                .version(HTTP_2)
+                .followRedirects(ALWAYS)
+                .build();
+        mapper = new ObjectMapper();
     }
 
     @Override
@@ -50,21 +67,9 @@ public class KeycloakHttpWebhookProviderFactory implements EventListenerProvider
     }
 
     @Override
-    public void init(Config.Scope config_scope) {
-    }
-
-    @Override
-    public void postInit(KeycloakSessionFactory keycloakSessionFactory) {
-
-    }
-
-    @Override
     public void close() {
-
-    }
-
-    @Override
-    public String getId() {
-        return "http_webhook";
+        webhookTarget = null;
+        httpClient = null;
+        mapper = null;
     }
 }
