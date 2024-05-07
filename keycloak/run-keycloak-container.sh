@@ -14,7 +14,7 @@ id="$(
       -p '8080:8080' \
       -p '8787:8787' \
       "$@" \
-      quay.io/keycloak/keycloak:22.0.1 \
+      quay.io/keycloak/keycloak:24.0.3 \
       start-dev \
       --debug \
       --db dev-file \
