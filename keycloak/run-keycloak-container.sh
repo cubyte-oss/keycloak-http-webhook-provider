@@ -6,7 +6,7 @@ host_ip="$(ip route get 1.1.1.1 | grep src | cut -d' ' -f7)"
 
 id="$(
   podman run -d --rm --name keycloak \
-      -v "$PWD/target/keycloak_http_webhook_provider.jar:/opt/keycloak/providers/http_webhook_provider.jar" \
+      -v "$PWD/target/keycloak_http_webhook_provider.jar:/opt/keycloak/providers/http_webhook_provider.jar:ro" \
       -e DEBUG_PORT='*:8787' \
       -e KEYCLOAK_ADMIN="admin" \
       -e KEYCLOAK_ADMIN_PASSWORD="admin" \
