@@ -51,7 +51,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
     }
 
 
-    private void forwardWebhook(String realmId, PayloadSupplier jsonSupplier) {
+    private void forwardWebhook(String realmId, String type, PayloadSupplier jsonSupplier) {
         logger.debug("Event occurred on realm " + realmId);
         if (webhookTarget == null) {
             logger.error(WEBHOOK_ENV + " environment variable not configured, no events will be forwarded!");
@@ -86,18 +86,18 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
                 logger.error("The webhook returned an unsuccessful status code: " + statusCode);
             }
 
-            logger.info("Event successfully delivered!");
+            logger.info("Event of type " + type + " successfully delivered!");
         });
     }
 
     @Override
     public void onEvent(Event event) {
-        forwardWebhook(event.getRealmId(), () -> mapper.writeValueAsBytes(event));
+        forwardWebhook(event.getRealmId(), event.getType().toString(), () -> mapper.writeValueAsBytes(event));
     }
 
     @Override
     public void onEvent(AdminEvent event, boolean includeRepresentation) {
-        forwardWebhook(event.getRealmId(), () -> {
+        forwardWebhook(event.getRealmId(), event.getResourceType() + ":" + event.getOperationType(), () -> {
             ObjectNode node = mapper.valueToTree(event);
             // An AdminEvent has weird JSON representation field which we need to special case.
             String representation = event.getRepresentation();
