@@ -14,18 +14,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.nio.ByteBuffer;
 import java.time.Duration;
-import java.util.concurrent.Flow;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static jakarta.ws.rs.core.HttpHeaders.CONTENT_TYPE;
 import static jakarta.ws.rs.core.HttpHeaders.USER_AGENT;
 import static java.net.http.HttpResponse.BodyHandlers.discarding;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static net.cubyte.keycloak.httpwebhookprovider.provider.KeycloakHttpWebhookProviderFactory.WEBHOOK_ENV;
-
 
 public class KeycloakHttpWebhookProvider implements EventListenerProvider {
 
@@ -50,7 +44,6 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
         this.webhookTarget = webhookTarget;
     }
 
-
     private void forwardWebhook(String realmId, String type, PayloadSupplier jsonSupplier) {
         logger.debug("Event occurred on realm " + realmId);
         if (webhookTarget == null) {
@@ -64,6 +57,13 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
         }
 
         String realmName = realm.getName();
+        final byte[] body;
+        try {
+            body = jsonSupplier.get();
+        } catch (IOException e) {
+            logger.error("Failed to produce json from event!", e);
+            return;
+        }
 
         final HttpRequest request = HttpRequest.newBuilder()
                 .uri(webhookTarget)
@@ -72,7 +72,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
                 .header(REALM_ID_HEADER, realmId)
                 .header(REALM_NAME_HEADER, realmName)
                 .timeout(REQUEST_TIMEOUT)
-                .POST(new LazyPayloadPublisher(jsonSupplier))
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                 .build();
 
         httpClient.sendAsync(request, discarding()).whenComplete((response, ex) -> {
@@ -116,73 +116,5 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
     @FunctionalInterface
     private interface PayloadSupplier {
         byte[] get() throws IOException;
-    }
-
-    private static class LazyPayloadPublisher implements Flow.Publisher<ByteBuffer>, HttpRequest.BodyPublisher {
-        private final PayloadSupplier supplier;
-        private final AtomicReference<Flow.Subscriber<? super ByteBuffer>> subscriber = new AtomicReference<>(null);
-
-        public LazyPayloadPublisher(PayloadSupplier supplier) {
-            this.supplier = supplier;
-        }
-
-        @Override
-        public long contentLength() {
-            return -1;
-        }
-
-        @Override
-        public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
-            if (!this.subscriber.compareAndSet(null, subscriber)) {
-                logger.warn("The lazy payload publisher can only be subscribed once!");
-                subscriber.onError(new IllegalStateException("publisher already subscribed!"));
-                return;
-            }
-
-            subscriber.onSubscribe(new LazyPayloadSubscription(subscriber));
-        }
-
-        private class LazyPayloadSubscription implements Flow.Subscription {
-            private final AtomicBoolean done;
-            private final Flow.Subscriber<? super ByteBuffer> subscriber;
-
-            public LazyPayloadSubscription(Flow.Subscriber<? super ByteBuffer> subscriber) {
-                this.subscriber = subscriber;
-                this.done = new AtomicBoolean(false);
-            }
-
-            @Override
-            public void request(long n) {
-                if (!done.compareAndSet(false, true)) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Subscription is already completed! (requested another " + n + " items)", new Exception());
-                    }
-                    return;
-                }
-
-                if (n < 0) {
-                    logger.warn("Request for " + n + " items cannot be fulfilled!");
-                    subscriber.onError(new IllegalArgumentException("demand may not be negative!"));
-                    return;
-                }
-
-                try {
-                    byte[] payload = supplier.get();
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Event payload: " + new String(payload, UTF_8));
-                    }
-
-                    subscriber.onNext(ByteBuffer.wrap(payload));
-                    subscriber.onComplete();
-                } catch (IOException e) {
-                    subscriber.onError(e);
-                }
-            }
-
-            @Override
-            public void cancel() {
-                done.set(false);
-            }
-        }
     }
 }
