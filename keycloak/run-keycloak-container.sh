@@ -2,17 +2,22 @@
 
 set -euo pipefail
 
-host_ip="$(ip route get 1.1.1.1 | grep src | cut -d' ' -f7)"
+config_file="${1?no config file}"
+shift 1
+config_file="$(readlink -f "$config_file")"
+config_dir="$(dirname "$config_file")"
+config_filename="$(basename "$config_file")"
 
 id="$(
   podman run -d --rm --name keycloak \
       -v "$PWD/target/keycloak_http_webhook_provider.jar:/opt/keycloak/providers/http_webhook_provider.jar:ro" \
+      -v "$config_dir:/config:ro" \
       -e DEBUG_PORT='*:8787' \
       -e KEYCLOAK_ADMIN="admin" \
       -e KEYCLOAK_ADMIN_PASSWORD="admin" \
-      -e KEYCLOAK_WEBHOOK_URL="http://$host_ip:5000" \
-      -p '8080:8080' \
-      -p '8787:8787' \
+      -e KEYCLOAK_WEBHOOK_CONFIG_FILE="/config/$config_filename" \
+      -e KEYCLOAK_WEBHOOK_CONFIG_WATCH="true" \
+      --net=host \
       "$@" \
       quay.io/keycloak/keycloak:24.0.4 \
       start-dev \

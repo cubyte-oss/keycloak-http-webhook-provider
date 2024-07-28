@@ -8,28 +8,28 @@ import org.keycloak.events.EventListenerProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Objects;
 
 import static java.net.http.HttpClient.Redirect.ALWAYS;
 import static java.net.http.HttpClient.Version.HTTP_2;
 
-
 public class KeycloakHttpWebhookProviderFactory implements EventListenerProviderFactory {
     private static final Logger logger = Logger.getLogger(KeycloakHttpWebhookProviderFactory.class);
 
-    static final String WEBHOOK_ENV = "KEYCLOAK_WEBHOOK_URL";
+    static final String WEBHOOK_CONFIG_ENV = "KEYCLOAK_WEBHOOK_CONFIG_FILE";
+    static final String WEBHOOK_CONFIG_WATCH_ENV = "KEYCLOAK_WEBHOOK_CONFIG_WATCH";
     private static final Duration CONNECTION_TIMEOUT = Duration.ofSeconds(1);
 
-    private URI webhookTarget;
     private HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(CONNECTION_TIMEOUT)
             .version(HTTP_2)
             .followRedirects(ALWAYS)
             .build();
     private ObjectMapper mapper;
+    private KeycloakHttpWebhookConfiguration configuration;
 
     @Override
     public String getId() {
@@ -42,34 +42,30 @@ public class KeycloakHttpWebhookProviderFactory implements EventListenerProvider
 
     @Override
     public void postInit(KeycloakSessionFactory factory) {
-        final String webhookEnvValue = System.getenv(WEBHOOK_ENV);
-        if (webhookEnvValue == null) {
-            throw new IllegalArgumentException("No webhook URL has been given! Set the " + WEBHOOK_ENV + " env var!");
+        final String webhookConfigEnvValue = System.getenv(WEBHOOK_CONFIG_ENV);
+        if (webhookConfigEnvValue == null) {
+            throw new IllegalArgumentException("No webhook config file has been given! Set the " + WEBHOOK_CONFIG_ENV + " env var!");
         }
-        try {
-            webhookTarget = new URI(webhookEnvValue);
-        } catch (URISyntaxException e) {
-            logger.error("Failed to parse webhook target as URI: " + webhookEnvValue, e);
-            throw new RuntimeException(e);
-        }
-
+        final boolean watchConfig = Objects.equals(System.getenv(WEBHOOK_CONFIG_WATCH_ENV), "true");
         httpClient = HttpClient.newBuilder()
                 .connectTimeout(CONNECTION_TIMEOUT)
                 .version(HTTP_2)
                 .followRedirects(ALWAYS)
                 .build();
         mapper = new ObjectMapper();
+        configuration = new KeycloakHttpWebhookConfiguration(mapper, Path.of(webhookConfigEnvValue), watchConfig);
     }
 
     @Override
     public EventListenerProvider create(KeycloakSession keycloakSession) {
-        return new KeycloakHttpWebhookProvider(keycloakSession, httpClient, mapper, webhookTarget);
+        return new KeycloakHttpWebhookProvider(keycloakSession, httpClient, mapper, configuration);
     }
 
     @Override
     public void close() {
-        webhookTarget = null;
         httpClient = null;
         mapper = null;
+        configuration.close();
+        configuration = null;
     }
 }
