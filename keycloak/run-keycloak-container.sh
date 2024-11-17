@@ -19,12 +19,11 @@ id="$(
       -e KEYCLOAK_WEBHOOK_CONFIG_WATCH="true" \
       --net=host \
       "$@" \
-      quay.io/keycloak/keycloak:24.0.5 \
+      quay.io/keycloak/keycloak:25.0.6 \
       start-dev \
       --debug \
       --db dev-file \
-      --hostname-url http://localhost:8080/auth \
-      --hostname-strict=false \
+      --hostname http://localhost:8080/auth \
       --proxy=edge \
       --http-enabled true \
       --http-relative-path /auth
