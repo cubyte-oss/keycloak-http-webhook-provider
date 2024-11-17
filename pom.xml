@@ -4,14 +4,14 @@
 
     <groupId>net.cubyte.keycloak</groupId>
     <artifactId>keycloak_http_webhook_provider</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>1.1.1</version>
     <packaging>jar</packaging>
 
     <name>Keycloak HTTP Webhook Provider</name>
     <description>A simple keycloak plugin that forwards events to an HTTP endpoint.</description>
 
     <properties>
-        <keycloak.version>24.0.2</keycloak.version>
+        <keycloak.version>24.0.5</keycloak.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 

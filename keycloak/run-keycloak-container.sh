@@ -19,7 +19,7 @@ id="$(
       -e KEYCLOAK_WEBHOOK_CONFIG_WATCH="true" \
       --net=host \
       "$@" \
-      quay.io/keycloak/keycloak:24.0.4 \
+      quay.io/keycloak/keycloak:24.0.5 \
       start-dev \
       --debug \
       --db dev-file \
