@@ -74,6 +74,7 @@ public class KeycloakHttpWebhookProvider implements EventListenerProvider {
                 requestBuilder = requestBuilder.header(AUTHORIZATION, authorizationHeader);
             }
 
+            logger.info("Sending event of type " + type + " to target at " + target.getUrl() + "...");
             httpClient.sendAsync(requestBuilder.build(), discarding()).whenComplete((response, ex) -> {
                 if (ex != null) {
                     logger.error("The HTTP request to the webhook target (" +  target.getUrl() + ") failed!", ex);

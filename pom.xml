@@ -4,7 +4,7 @@
 
     <groupId>net.cubyte.keycloak</groupId>
     <artifactId>keycloak_http_webhook_provider</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Keycloak HTTP Webhook Provider</name>
